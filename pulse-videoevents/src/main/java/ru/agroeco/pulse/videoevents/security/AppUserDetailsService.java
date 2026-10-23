@@ -1,15 +1,29 @@
 package ru.agroeco.pulse.videoevents.security;
-import org.springframework.security.core.userdetails.User;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import java.util.Map;
-@Service
-public class AppUserDetailsService implements UserDetailsService{
-  private final Map<String,UserDetails> users=Map.of(
-    "operator",User.withUsername("operator").password("{noop}operator").roles("OPERATOR").build(),
-    "admin",User.withUsername("admin").password("{noop}admin").roles("ADMIN").build());
-  @Override
-  public UserDetails loadUserByUsername(String username)throws UsernameNotFoundException{return users.get(username);}
+import org.springframework.transaction.annotation.Transactional;
+import java.util.HashSet;
+
+@Service @RequiredArgsConstructor
+public class AppUserDetailsService implements UserDetailsService {
+    private final SecurityUserRepository repository;
+    @Override @Transactional(readOnly = true)
+    public UserDetails loadUserByUsername(String username) {
+        var user = repository.findByUsername(username).filter(SecurityUser::isEnabled)
+            .orElseThrow(() -> new UsernameNotFoundException("User not available"));
+        var names = new HashSet<String>();
+        for (AppRole role : user.getRoles()) {
+            names.add("ROLE_" + role.name());
+            names.addAll(role.permissions());
+        }
+        var authorities = names.stream().sorted()
+            .map(name -> (GrantedAuthority) new SimpleGrantedAuthority(name)).toList();
+        return new AppPrincipal(user.getId(), user.getUsername(), user.getPasswordHash(), authorities);
+    }
 }
