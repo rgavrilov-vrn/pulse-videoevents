@@ -1,0 +1,21 @@
+package ru.agroeco.pulse.videoevents.application.outbox;
+import jakarta.persistence.*;
+import lombok.*;
+import java.time.Instant;
+import java.util.UUID;
+@Entity
+@Table(name="outbox_events")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class OutboxEventEntity{
+  @Id private UUID id;
+  @Column(name="event_type",nullable=false) private String eventType;
+  @Column(name="incident_id",nullable=false) private UUID incidentId;
+  @Column(nullable=false,columnDefinition="jsonb") private String payload;
+  @Enumerated(EnumType.STRING) @Column(nullable=false) private OutboxStatus status;
+  @Column(nullable=false) private int attempts;
+  @Column(name="next_attempt_at",nullable=false) private Instant nextAttemptAt;
+  @Column(name="published_at") private Instant publishedAt;
+  @Column(name="last_error") private String lastError;
+  @Column(name="created_at",nullable=false,updatable=false) private Instant createdAt;
+  @PrePersist void prePersist(){if(id==null)id=UUID.randomUUID();if(createdAt==null)createdAt=Instant.now();}
+}
