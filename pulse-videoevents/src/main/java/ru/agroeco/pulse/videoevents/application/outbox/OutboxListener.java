@@ -1,23 +1,26 @@
 package ru.agroeco.pulse.videoevents.application.outbox;
 
-import ru.agroeco.pulse.videoevents.application.JsonCodec;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import ru.agroeco.pulse.videoevents.domain.event.DomainEvent;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-import java.util.UUID;
+import java.time.Instant;
 
-@Component
-@RequiredArgsConstructor
+@Component @RequiredArgsConstructor
 public class OutboxListener {
-    private final JdbcTemplate jdbc;
+    private final OutboxEventRepository repository;
+    private final ObjectMapper mapper;
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
     public void on(DomainEvent event) {
-        // JdbcTemplate participates in the same datasource transaction as JPA.
-        jdbc.update("INSERT INTO outbox_events (id, event_type, incident_id, payload, status, "
-            + "attempts, next_attempt_at, created_at) VALUES (?, ?, ?, cast(? as jsonb), 'NEW', 0, now(), now())",
-            UUID.randomUUID(), event.eventType(), event.incidentId(), JsonCodec.write(event));
+        try {
+            repository.save(OutboxEventEntity.builder().eventType(event.eventType())
+                .incidentId(event.incidentId()).payload(mapper.writeValueAsString(event))
+                .status(OutboxStatus.NEW).attempts(0).nextAttemptAt(Instant.now()).build());
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Cannot serialize outbox event", ex);
+        }
     }
 }
