@@ -1,5 +1,9 @@
 package ru.agroeco.pulse.videoevents.application;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.agroeco.pulse.videoevents.adapter.persistence.*;
 import ru.agroeco.pulse.videoevents.application.dto.*;
 import ru.agroeco.pulse.videoevents.application.event.EventDispatcher;
@@ -11,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -44,19 +49,19 @@ public class IncidentService {
         }
         Instant eventTime = r.eventTimestamp() == null ? Instant.now() : r.eventTimestamp();
         var source = VideoServerEventEntity.builder()
-            .externalEventId(r.externalEventId()).eventTimestamp(eventTime).eventType(r.eventType())
-            .objectExternalId(r.objectExternalId()).cameraExternalId(r.cameraExternalId())
-            .serverAddress(r.serverAddress())
-            .rawPayload(r.payload() == null ? "{}" : JsonCodec.write(r.payload())).build();
+                .externalEventId(r.externalEventId()).eventTimestamp(eventTime).eventType(r.eventType())
+                .objectExternalId(r.objectExternalId()).cameraExternalId(r.cameraExternalId())
+                .serverAddress(r.serverAddress())
+                .rawPayload(r.payload() == null ? "{}" : JsonCodec.write(r.payload())).build();
         videoEvents.save(source);
         long number = incidents.nextIncidentNumber();
         var incident = IncidentEntity.builder()
-            .incidentNumber("INC-%d-%06d".formatted(LocalDate.now(ZoneOffset.UTC).getYear(), number))
-            .externalEventId(r.externalEventId()).status(IncidentStatus.RECORDED).severity(Severity.MEDIUM)
-            .eventTime(eventTime)
-            .objectId(UUID.nameUUIDFromBytes(r.objectExternalId().getBytes(StandardCharsets.UTF_8)))
-            .cameraId(r.cameraExternalId() == null ? null
-                : UUID.nameUUIDFromBytes(r.cameraExternalId().getBytes(StandardCharsets.UTF_8))).build();
+                .incidentNumber("INC-%d-%06d".formatted(LocalDate.now(ZoneOffset.UTC).getYear(), number))
+                .externalEventId(r.externalEventId()).status(IncidentStatus.RECORDED).severity(Severity.MEDIUM)
+                .eventTime(eventTime)
+                .objectId(UUID.nameUUIDFromBytes(r.objectExternalId().getBytes(StandardCharsets.UTF_8)))
+                .cameraId(r.cameraExternalId() == null ? null
+                        : UUID.nameUUIDFromBytes(r.cameraExternalId().getBytes(StandardCharsets.UTF_8))).build();
         incident = incidents.save(incident);
         source.setIncidentId(incident.getId());
         source.setProcessedAt(Instant.now());
@@ -71,7 +76,9 @@ public class IncidentService {
     }
 
     @Transactional(readOnly = true)
-    public IncidentResponse findById(UUID id) { return toResponse(load(id)); }
+    public IncidentResponse findById(UUID id) {
+        return toResponse(load(id));
+    }
 
     @Transactional
     public IncidentResponse attachEvidence(UUID id, EvidenceRequest r) {
@@ -81,7 +88,7 @@ public class IncidentService {
             throw new BusinessRuleException("Evidence already attached");
         }
         evidence.save(EvidenceEntity.builder().incidentId(id).mediaAssetId(r.mediaAssetId())
-            .role(r.role()).fileName(r.fileName()).sha256(r.sha256()).capturedAt(r.capturedAt()).build());
+                .role(r.role()).fileName(r.fileName()).sha256(r.sha256()).capturedAt(r.capturedAt()).build());
         events.dispatch(new IncidentEvidenceAttached(id, r.mediaAssetId(), Instant.now()));
         return toResponse(incident);
     }
@@ -151,7 +158,7 @@ public class IncidentService {
 
     private IncidentResponse toResponse(IncidentEntity i) {
         return new IncidentResponse(i.getId(), i.getIncidentNumber(), i.getExternalEventId(), i.getStatus(),
-            i.getSeverity(), i.getEventTime(), i.getObjectId(), i.getCameraId(), i.getOperatorId(),
-            i.getAssigneeId(), i.getDueAt(), i.getResolutionComment(), i.getVersion());
+                i.getSeverity(), i.getEventTime(), i.getObjectId(), i.getCameraId(), i.getOperatorId(),
+                i.getAssigneeId(), i.getDueAt(), i.getResolutionComment(), i.getVersion());
     }
 }

@@ -10,10 +10,12 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
-@Component @Slf4j
+@Component
+@Slf4j
 @ConditionalOnProperty(name = "app.outbox.relay-enabled", havingValue = "true")
 public class OutboxRelay {
     private final OutboxEventRepository repository;
@@ -25,14 +27,19 @@ public class OutboxRelay {
     private final long timeoutSeconds;
 
     public OutboxRelay(OutboxEventRepository repository, KafkaTemplate<String, String> kafka, ObjectMapper mapper,
-        @Value("${app.kafka.topic.incident-events}") String topic,
-        @Value("${app.outbox.batch-size:50}") int batchSize,
-        @Value("${app.outbox.max-attempts:5}") int maxAttempts,
-        @Value("${app.outbox.send-timeout-seconds:10}") long timeoutSeconds) {
+                       @Value("${app.kafka.topic.incident-events}") String topic,
+                       @Value("${app.outbox.batch-size:50}") int batchSize,
+                       @Value("${app.outbox.max-attempts:5}") int maxAttempts,
+                       @Value("${app.outbox.send-timeout-seconds:10}") long timeoutSeconds) {
         if (batchSize < 1 || batchSize > 500 || maxAttempts < 1 || timeoutSeconds < 1)
             throw new IllegalArgumentException("Invalid outbox configuration");
-        this.repository = repository; this.kafka = kafka; this.mapper = mapper; this.topic = topic;
-        this.batchSize = batchSize; this.maxAttempts = maxAttempts; this.timeoutSeconds = timeoutSeconds;
+        this.repository = repository;
+        this.kafka = kafka;
+        this.mapper = mapper;
+        this.topic = topic;
+        this.batchSize = batchSize;
+        this.maxAttempts = maxAttempts;
+        this.timeoutSeconds = timeoutSeconds;
     }
 
     // Deliberately retains transaction-scoped locks while sending; no lease protocol yet.
@@ -50,8 +57,8 @@ public class OutboxRelay {
                 envelope.put("recordedAt", event.getCreatedAt().toString());
                 envelope.set("payload", mapper.readTree(event.getPayload()));
                 var message = MessageBuilder.withPayload(mapper.writeValueAsString(envelope))
-                    .setHeader(KafkaHeaders.TOPIC, topic)
-                    .setHeader(KafkaHeaders.KEY, event.getIncidentId().toString()).build();
+                        .setHeader(KafkaHeaders.TOPIC, topic)
+                        .setHeader(KafkaHeaders.KEY, event.getIncidentId().toString()).build();
                 kafka.send(message).get(timeoutSeconds, TimeUnit.SECONDS);
             } catch (Exception ex) {
                 if (ex instanceof InterruptedException) {

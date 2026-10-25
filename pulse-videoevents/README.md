@@ -7,16 +7,19 @@ Spring Boot 3 API с PostgreSQL, Flyway, Spring Modulith, JWT, Swagger, Actuator
 1. `IncidentService` публикует `DomainEvent` через `SpringEventDispatcher`.
 2. `OutboxListener` в той же транзакции сохраняет событие в `outbox_events` со статусом `NEW`.
 3. `OutboxRelay` каждые 5 секунд читает `NEW` события и отправляет их в Kafka.
-4. После успешной отправки запись получает `SENT`; при ошибке увеличивается `attempts` и планируется retry с exponential backoff.
+4. После успешной отправки запись получает `SENT`; при ошибке увеличивается `attempts` и планируется retry с exponential
+   backoff.
 5. После `max-attempts` запись становится `FAILED`.
 
-Это гарантирует: если транзакция БД зафиксировалась, событие не будет потеряно; если Kafka недоступна, отправка будет повторена.
+Это гарантирует: если транзакция БД зафиксировалась, событие не будет потеряно; если Kafka недоступна, отправка будет
+повторена.
 
 ## Kafka
 
 Topic: `pulse.videoevents.incident-events`.
 
-События: `IncidentCreated`, `IncidentAssigned`, `IncidentEvidenceAttached`, `IncidentConfirmed`, `IncidentRejected`, `IncidentClosed`.
+События: `IncidentCreated`, `IncidentAssigned`, `IncidentEvidenceAttached`, `IncidentConfirmed`, `IncidentRejected`,
+`IncidentClosed`.
 
 Kafka UI: http://localhost:8085
 

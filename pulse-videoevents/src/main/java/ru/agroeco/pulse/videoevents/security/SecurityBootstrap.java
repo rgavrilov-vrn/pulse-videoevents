@@ -8,17 +8,23 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
-@Component @RequiredArgsConstructor
+@Component
+@RequiredArgsConstructor
 @ConditionalOnProperty(name = "app.security.bootstrap.enabled", havingValue = "true")
 public class SecurityBootstrap implements ApplicationRunner {
     private final SecurityUserRepository users;
     private final PasswordEncoder encoder;
-    @Value("${app.security.bootstrap.username:}") private String username;
-    @Value("${app.security.bootstrap.password:}") private String password;
-    @Override @Transactional
+    @Value("${app.security.bootstrap.username:}")
+    private String username;
+    @Value("${app.security.bootstrap.password:}")
+    private String password;
+
+    @Override
+    @Transactional
     public void run(ApplicationArguments args) {
         if (username.isBlank() || password.length() < 16
                 || password.getBytes(StandardCharsets.UTF_8).length > 72) {
@@ -26,7 +32,9 @@ public class SecurityBootstrap implements ApplicationRunner {
         }
         if (users.findByUsername(username).isPresent()) return;
         var user = new SecurityUser();
-        user.setUsername(username); user.setPasswordHash(encoder.encode(password));
-        user.setRoles(Set.of(AppRole.ADMIN)); users.save(user);
+        user.setUsername(username);
+        user.setPasswordHash(encoder.encode(password));
+        user.setRoles(Set.of(AppRole.ADMIN));
+        users.save(user);
     }
 }

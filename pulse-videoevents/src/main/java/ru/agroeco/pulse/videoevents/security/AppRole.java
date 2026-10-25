@@ -9,9 +9,15 @@ public enum AppRole {
     AUDITOR(Set.of("incident:read", "audit:read")),
     INTEGRATION(Set.of("video-event:ingest")),
     ADMIN(Set.of("incident:read", "incident:evidence", "incident:confirm", "incident:reject",
-        "incident:assign", "incident:close", "audit:read", "video-event:ingest", "user:manage"));
+            "incident:assign", "incident:close", "audit:read", "video-event:ingest", "user:manage"));
 
     private final Set<String> permissions;
-    AppRole(Set<String> permissions) { this.permissions = permissions; }
-    public Set<String> permissions() { return permissions; }
+
+    AppRole(Set<String> permissions) {
+        this.permissions = permissions;
+    }
+
+    public Set<String> permissions() {
+        return permissions;
+    }
 }

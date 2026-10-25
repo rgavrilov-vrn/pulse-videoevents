@@ -1,24 +1,27 @@
 package ru.agroeco.pulse.videoevents.application.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ru.agroeco.pulse.videoevents.adapter.persistence.InboxEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import ru.agroeco.pulse.videoevents.adapter.persistence.InboxEventRepository;
+
 import java.util.UUID;
 
-@Component @RequiredArgsConstructor @Slf4j
+@Component
+@RequiredArgsConstructor
+@Slf4j
 @ConditionalOnProperty(name = "app.kafka.enabled", havingValue = "true")
 public class IncidentEventKafkaConsumer {
     private final ObjectMapper mapper;
     private final InboxEventRepository inbox;
 
     @KafkaListener(topics = "${app.kafka.topic.incident-events}",
-        groupId = "${spring.kafka.consumer.group-id}",
-        properties = {"value.deserializer=org.apache.kafka.common.serialization.StringDeserializer"})
+            groupId = "${spring.kafka.consumer.group-id}",
+            properties = {"value.deserializer=org.apache.kafka.common.serialization.StringDeserializer"})
     @Transactional
     public void on(String message) throws Exception {
         var event = mapper.readTree(message);

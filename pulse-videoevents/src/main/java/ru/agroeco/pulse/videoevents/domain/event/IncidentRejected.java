@@ -3,6 +3,10 @@ package ru.agroeco.pulse.videoevents.domain.event;
 import java.time.Instant;
 import java.util.UUID;
 
-public record IncidentRejected(UUID incidentId, Instant occurredAt) implements DomainEvent {
-    @Override public String eventType() { return "IncidentRejected"; }
+public record IncidentRejected(UUID incidentId, Instant occurredAt) implements
+
+DomainEvent {
+    @Override public String eventType () {
+        return "IncidentRejected";
+    }
 }

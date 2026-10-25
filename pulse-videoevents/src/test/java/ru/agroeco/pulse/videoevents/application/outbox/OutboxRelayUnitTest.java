@@ -9,30 +9,36 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.messaging.Message;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class OutboxRelayUnitTest {
-    @Mock OutboxEventRepository repository;
-    @Mock KafkaTemplate<String, String> kafka;
+    @Mock
+    OutboxEventRepository repository;
+    @Mock
+    KafkaTemplate<String, String> kafka;
     private OutboxRelay relay;
     private OutboxEventEntity event;
 
-    @BeforeEach void setup() {
+    @BeforeEach
+    void setup() {
         relay = new OutboxRelay(repository, kafka, new ObjectMapper(), "events", 7, 2, 1);
         event = OutboxEventEntity.builder().id(UUID.randomUUID()).incidentId(UUID.randomUUID())
-            .eventType("IncidentCreated").payload("{}").status(OutboxStatus.NEW)
-            .createdAt(Instant.now()).nextAttemptAt(Instant.now()).build();
+                .eventType("IncidentCreated").payload("{}").status(OutboxStatus.NEW)
+                .createdAt(Instant.now()).nextAttemptAt(Instant.now()).build();
         when(repository.lockPending(any(Instant.class), eq(7))).thenReturn(List.of(event));
     }
 
-    @Test void acknowledgedEventBecomesSent() {
+    @Test
+    void acknowledgedEventBecomesSent() {
         when(kafka.send(any(Message.class))).thenReturn(CompletableFuture.completedFuture(null));
         relay.publishPendingEvents();
         assertThat(event.getStatus()).isEqualTo(OutboxStatus.SENT);
@@ -40,9 +46,10 @@ class OutboxRelayUnitTest {
         verify(repository).flush();
     }
 
-    @Test void failedFutureSchedulesRetry() {
+    @Test
+    void failedFutureSchedulesRetry() {
         when(kafka.send(any(Message.class))).thenReturn(CompletableFuture.<SendResult<String, String>>
-            failedFuture(new IllegalStateException("offline")));
+                failedFuture(new IllegalStateException("offline")));
         relay.publishPendingEvents();
         assertThat(event.getStatus()).isEqualTo(OutboxStatus.NEW);
         assertThat(event.getAttempts()).isEqualTo(1);
@@ -50,16 +57,18 @@ class OutboxRelayUnitTest {
         assertThat(event.getNextAttemptAt()).isAfter(Instant.now());
     }
 
-    @Test void exhaustedRetriesBecomeFailed() {
+    @Test
+    void exhaustedRetriesBecomeFailed() {
         event.setAttempts(1);
         when(kafka.send(any(Message.class))).thenReturn(CompletableFuture.<SendResult<String, String>>
-            failedFuture(new IllegalStateException("offline")));
+                failedFuture(new IllegalStateException("offline")));
         relay.publishPendingEvents();
         assertThat(event.getStatus()).isEqualTo(OutboxStatus.FAILED);
         assertThat(event.getAttempts()).isEqualTo(2);
     }
 
-    @Test void timeoutDoesNotMarkSent() {
+    @Test
+    void timeoutDoesNotMarkSent() {
         when(kafka.send(any(Message.class))).thenReturn(new CompletableFuture<>());
         relay.publishPendingEvents();
         assertThat(event.getStatus()).isEqualTo(OutboxStatus.NEW);
