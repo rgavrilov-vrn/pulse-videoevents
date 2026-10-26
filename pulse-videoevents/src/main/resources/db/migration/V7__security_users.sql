@@ -1,4 +1,4 @@
--- Dedicated tables for the current simplified backend; does not alter legacy auth.* project scripts.
+ -- Dedicated tables for the current simplified backend; does not alter legacy auth.* project scripts.
 CREATE TABLE security_users
 (
     id            UUID PRIMARY KEY,

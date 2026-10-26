@@ -69,6 +69,8 @@ logging:
   level:
     root: INFO
     ru.agroeco.pulse.videoevents: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{correlationId:-}] [%thread] %logger{36} - %msg%n"
   charset:
