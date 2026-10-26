@@ -19,8 +19,14 @@ public class AuditEventListener {
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
     public void on(DomainEvent event) {
         try {
-            repository.save(AuditEventEntity.builder().eventType(event.eventType()).incidentId(event.incidentId())
-                    .payload(mapper.writeValueAsString(event)).occurredAt(event.occurredAt()).build());
+            repository.save(AuditEventEntity.builder()
+                .action(event.eventType())
+                .entitySchema("incident")
+                .entityTable("incidents")
+                .entityId(event.incidentId())
+                .newData(mapper.writeValueAsString(event))
+                .occurredAt(event.occurredAt())
+                .build());
         } catch (JsonProcessingException ex) {
             throw new IllegalStateException("Cannot serialize audit event", ex);
         }
