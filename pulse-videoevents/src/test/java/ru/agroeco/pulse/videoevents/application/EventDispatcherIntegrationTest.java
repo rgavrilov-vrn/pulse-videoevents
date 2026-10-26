@@ -30,7 +30,16 @@ class EventDispatcherIntegrationTest {
     void savesAuditAndOutboxEvent() {
         var r = new VideoEventRequest("evt-" + UUID.randomUUID(), Instant.now(), "MOTION_DETECTED", UUID.randomUUID().toString(), null, null, null);
         var incident = service.ingestVideoEvent(r);
-        assertTrue(audit.findAll().stream().anyMatch(a -> incident.id().equals(a.getIncidentId())));
-        assertTrue(outbox.findAll().stream().anyMatch(o -> incident.id().equals(o.getIncidentId()) && o.getStatus() == OutboxStatus.NEW));
+
+        assertTrue(audit.findAll().stream().anyMatch(a ->
+            incident.id().equals(a.getEntityId())
+                && "incident".equals(a.getEntitySchema())
+                && "incidents".equals(a.getEntityTable())
+        ));
+
+        assertTrue(outbox.findAll().stream().anyMatch(o ->
+            incident.id().equals(o.getIncidentId())
+                && o.getStatus() == OutboxStatus.NEW
+        ));
     }
 }
