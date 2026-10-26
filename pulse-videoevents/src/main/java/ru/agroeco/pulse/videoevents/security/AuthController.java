@@ -32,21 +32,21 @@ public class AuthController {
     public ResponseEntity<TokenResponse> token(@Valid @RequestBody TokenRequest request) {
         try {
             var authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.username(), request.password()));
+                    new UsernamePasswordAuthenticationToken(request.username(), request.password())
+            );
 
-            var principal = (SecurityUser) authentication.getPrincipal();
-            var user = principal.toUserDetails();
+            AppPrincipal principal = (AppPrincipal) authentication.getPrincipal();
 
             eventPublisher.publishEvent(new UserAuthenticated(
-                principal.getId(),
-                request.username(),
-                Instant.now()
+                    principal.id(),
+                    principal.getUsername(),
+                    Instant.now()
             ));
 
             return ResponseEntity.ok(new TokenResponse(
-                jwtService.generateToken(user),
-                "Bearer",
-                jwtService.expirationSeconds()
+                    jwtService.generateToken(principal),
+                    "Bearer",
+                    jwtService.expirationSeconds()
             ));
         } catch (AuthenticationException ex) {
             eventPublisher.publishEvent(new UserAuthenticationFailed(

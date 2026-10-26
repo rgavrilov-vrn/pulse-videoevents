@@ -14,7 +14,7 @@ public class SpringEventDispatcher implements EventDispatcher {
 
     @Override
     public void dispatch(DomainEvent event) {
-        log.debug("Dispatching domain event: type={}, incidentId={}", event.eventType(), event.incidentId());
+        log.debug("Dispatching domain event: type={}, incidentId={}", event.eventType(), event.entityId());
         publisher.publishEvent(event);
     }
 }

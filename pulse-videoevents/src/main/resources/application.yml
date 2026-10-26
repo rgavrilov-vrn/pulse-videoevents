@@ -46,6 +46,10 @@ app:
     jwt:
       secret: ${JWT_SECRET:change-this-secret-change-this-secret-change-this-secret}
       expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+    bootstrap:
+      enabled: ${SECURITY_BOOTSTRAP_ENABLED:false}
+      username: ${SECURITY_BOOTSTRAP_USERNAME}
+      password: ${SECURITY_BOOTSTRAP_PASSWORD}
 
 management:
   endpoints:
@@ -76,3 +80,4 @@ logging:
   charset:
     console: UTF-8
     file: UTF-8
+

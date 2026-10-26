@@ -9,6 +9,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.messaging.Message;
+import ru.agroeco.pulse.videoevents.adapter.persistence.outbox.OutboxEventEntity;
+import ru.agroeco.pulse.videoevents.adapter.persistence.outbox.OutboxEventRepository;
 
 import java.time.Instant;
 import java.util.List;
@@ -31,7 +33,7 @@ class OutboxRelayUnitTest {
     @BeforeEach
     void setup() {
         relay = new OutboxRelay(repository, kafka, new ObjectMapper(), "events", 7, 2, 1);
-        event = OutboxEventEntity.builder().id(UUID.randomUUID()).incidentId(UUID.randomUUID())
+        event = OutboxEventEntity.builder().id(UUID.randomUUID()).entityId(UUID.randomUUID())
                 .eventType("IncidentCreated").payload("{}").status(OutboxStatus.NEW)
                 .createdAt(Instant.now()).nextAttemptAt(Instant.now()).build();
         when(repository.lockPending(any(Instant.class), eq(7))).thenReturn(List.of(event));

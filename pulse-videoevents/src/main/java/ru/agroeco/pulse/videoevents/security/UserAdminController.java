@@ -10,7 +10,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import ru.agroeco.pulse.videoevents.adapter.persistence.security.RoleRepository;
+import ru.agroeco.pulse.videoevents.adapter.persistence.security.UserEntity;
+import ru.agroeco.pulse.videoevents.adapter.persistence.security.UserRepository;
+import ru.agroeco.pulse.videoevents.adapter.persistence.security.UserRoleEntity;
+import ru.agroeco.pulse.videoevents.adapter.persistence.security.UserRoleId;
+import ru.agroeco.pulse.videoevents.domain.exception.NotFoundException;
+
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -19,45 +27,115 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('user:manage')")
 public class UserAdminController {
-    private final SecurityUserRepository users;
+
+    private final UserRepository users;
+    private final RoleRepository roles;
     private final PasswordEncoder encoder;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
-    public UserView create(@Valid @RequestBody CreateUser r) {
-        if (r.password().getBytes(StandardCharsets.UTF_8).length > 72)
+    public UserView create(@Valid @RequestBody CreateUser request) {
+        if (request.password().getBytes(StandardCharsets.UTF_8).length > 72) {
             throw new IllegalArgumentException("Password exceeds BCrypt byte limit");
-        var user = new SecurityUser();
-        user.setUsername(r.username());
-        user.setPasswordHash(encoder.encode(r.password()));
-        user.setRoles(Set.copyOf(r.roles()));
-        user = users.saveAndFlush(user);
-        return view(user);
+        }
+
+        if (users.existsByLoginIgnoreCase(request.username())) {
+            throw new IllegalArgumentException("User already exists");
+        }
+
+        var user = UserEntity.builder()
+                .login(request.username())
+                .passwordHash(encoder.encode(request.password()))
+                .displayName(request.username())
+                .active(true)
+                .build();
+
+        var managedUser = users.save(user);
+        assignRoles(managedUser, request.roles());
+
+        return view(managedUser);
     }
 
     @PutMapping("/{id}/roles")
     @Transactional
-    public UserView roles(@PathVariable UUID id, @Valid @RequestBody ChangeRoles r, Authentication auth) {
-        if (auth.getPrincipal() instanceof AppPrincipal p && p.id().equals(id))
+    public UserView changeRoles(
+            @PathVariable UUID id,
+            @Valid @RequestBody ChangeRoles request,
+            Authentication authentication
+    ) {
+        if (authentication.getPrincipal() instanceof AppPrincipal principal
+                && principal.id().equals(id)) {
             throw new IllegalArgumentException("Self role changes are not allowed");
-        var user = users.findById(id).orElseThrow(() ->
-                new ru.agroeco.pulse.videoevents.domain.exception.NotFoundException("User not found"));
-        user.setRoles(Set.copyOf(r.roles()));
+        }
+
+        var user = users.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        user.getRoles().clear();
+        assignRoles(user, request.roles());
+
         return view(users.saveAndFlush(user));
     }
 
-    private UserView view(SecurityUser u) {
-        return new UserView(u.getId(), u.getUsername(), u.isEnabled(), Set.copyOf(u.getRoles()));
+    private void assignRoles(UserEntity user, Set<String> roleCodes) {
+        var newRoles = new HashSet<UserRoleEntity>();
+
+        for (String roleCode : roleCodes) {
+            var role = roles.findByCodeIgnoreCase(roleCode)
+                    .orElseThrow(() -> new NotFoundException("Role not found: " + roleCode));
+
+            var userRole = UserRoleEntity.builder()
+                    .id(new UserRoleId(user.getId(), role.getId()))
+                    .user(user)
+                    .role(role)
+                    .build();
+
+            newRoles.add(userRole);
+        }
+
+        user.getRoles().clear();
+        user.getRoles().addAll(newRoles);
     }
 
-    public record CreateUser(@NotBlank @Size(max = 100) String username,
-                             @NotBlank @Size(min = 16, max = 72) String password, @NotEmpty Set<@NotNull AppRole> roles) {
+    private UserView view(UserEntity user) {
+        var roleCodes = user.getRoles().stream()
+                .map(userRole -> userRole.getRole().getCode())
+                .collect(java.util.stream.Collectors.toSet());
+
+        return new UserView(
+                user.getId(),
+                user.getLogin(),
+                user.isActive(),
+                roleCodes
+        );
     }
 
-    public record ChangeRoles(@NotEmpty Set<@NotNull AppRole> roles) {
+    public record CreateUser(
+            @NotBlank
+            @Size(max = 100)
+            String username,
+
+            @NotBlank
+            @Size(min = 16, max = 72)
+            String password,
+
+            @NotEmpty
+            Set<@NotBlank String> roles
+    ) {
     }
 
-    public record UserView(UUID id, String username, boolean enabled, Set<AppRole> roles) {
+    public record ChangeRoles(
+            @NotEmpty
+            Set<@NotBlank String> roles
+    ) {
+    }
+
+    public record UserView(
+            UUID id,
+            String username,
+            boolean enabled,
+            Set<String> roles
+    ) {
     }
 }

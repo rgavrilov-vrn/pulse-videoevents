@@ -1,15 +1,16 @@
-package ru.agroeco.pulse.videoevents.application.outbox;
+package ru.agroeco.pulse.videoevents.adapter.persistence.outbox;
 
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import ru.agroeco.pulse.videoevents.application.outbox.OutboxStatus;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "outbox_events")
+@Table(name = "outbox_events", schema = "outbox")
 @Getter
 @Setter
 @NoArgsConstructor

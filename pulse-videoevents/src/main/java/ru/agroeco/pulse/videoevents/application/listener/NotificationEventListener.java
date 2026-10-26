@@ -10,17 +10,7 @@ import ru.agroeco.pulse.videoevents.domain.event.*;
 @Slf4j
 public class NotificationEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void on(IncidentCreated e) {
-        log.info("Notification: new incident {}", e.incidentId());
-    }
-
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void on(IncidentConfirmed e) {
-        log.info("Notification: incident {} confirmed", e.incidentId());
-    }
-
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void on(IncidentClosed e) {
-        log.info("Notification: incident {} closed", e.incidentId());
+    public void on(UserAuthenticated e) {
+        log.info("Notification: new UserAuthenticated {}", e.username());
     }
 }

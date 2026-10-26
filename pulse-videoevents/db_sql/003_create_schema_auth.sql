@@ -2,16 +2,18 @@
 
 CREATE SCHEMA IF NOT EXISTS auth;
 
-CREATE TABLE IF NOT EXISTS auth.users (
+CREATE TABLE IF NOT EXISTS auth.users
+(
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     external_id VARCHAR(255),
     login CITEXT NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
     display_name VARCHAR(255) NOT NULL,
     email CITEXT,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    );
+);
 
 CREATE TABLE IF NOT EXISTS auth.roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

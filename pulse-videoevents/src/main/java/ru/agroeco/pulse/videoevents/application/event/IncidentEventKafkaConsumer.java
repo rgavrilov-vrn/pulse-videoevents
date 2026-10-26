@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import ru.agroeco.pulse.videoevents.adapter.persistence.InboxEventRepository;
+import ru.agroeco.pulse.videoevents.adapter.persistence.outbox.InboxEventRepository;
 
 import java.util.UUID;
 

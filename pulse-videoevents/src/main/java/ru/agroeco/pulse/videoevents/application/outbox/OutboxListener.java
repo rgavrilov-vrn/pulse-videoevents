@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import ru.agroeco.pulse.videoevents.adapter.persistence.outbox.OutboxEventEntity;
+import ru.agroeco.pulse.videoevents.adapter.persistence.outbox.OutboxEventRepository;
 import ru.agroeco.pulse.videoevents.domain.event.DomainEvent;
 
 import java.time.Instant;

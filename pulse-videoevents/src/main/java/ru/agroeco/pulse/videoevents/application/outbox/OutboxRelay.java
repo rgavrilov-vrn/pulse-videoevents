@@ -10,6 +10,7 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import ru.agroeco.pulse.videoevents.adapter.persistence.outbox.OutboxEventRepository;
 
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
@@ -51,14 +52,14 @@ public class OutboxRelay {
             try {
                 var envelope = mapper.createObjectNode();
                 envelope.put("eventId", event.getId().toString());
-                envelope.put("aggregateId", event.getIncidentId().toString());
+                envelope.put("aggregateId", event.getEntityId().toString());
                 envelope.put("eventType", event.getEventType());
                 envelope.put("schemaVersion", 1);
                 envelope.put("recordedAt", event.getCreatedAt().toString());
                 envelope.set("payload", mapper.readTree(event.getPayload()));
                 var message = MessageBuilder.withPayload(mapper.writeValueAsString(envelope))
                         .setHeader(KafkaHeaders.TOPIC, topic)
-                        .setHeader(KafkaHeaders.KEY, event.getIncidentId().toString()).build();
+                        .setHeader(KafkaHeaders.KEY, event.getEntityId().toString()).build();
                 kafka.send(message).get(timeoutSeconds, TimeUnit.SECONDS);
             } catch (Exception ex) {
                 if (ex instanceof InterruptedException) {
