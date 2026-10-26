@@ -4,13 +4,19 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import ru.agroeco.pulse.videoevents.application.dto.TokenRequest;
 import ru.agroeco.pulse.videoevents.application.dto.TokenResponse;
+import ru.agroeco.pulse.videoevents.domain.event.UserAuthenticated;
+import ru.agroeco.pulse.videoevents.domain.event.UserAuthenticationFailed;
+
+import java.time.Instant;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -19,14 +25,36 @@ import ru.agroeco.pulse.videoevents.application.dto.TokenResponse;
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @PostMapping("/token")
     @Operation(summary = "Issue JWT access token")
     public ResponseEntity<TokenResponse> token(@Valid @RequestBody TokenRequest request) {
-        var authentication = authenticationManager.authenticate(
+        try {
+            var authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.username(), request.password()));
-        UserDetails user = (UserDetails) authentication.getPrincipal();
-        return ResponseEntity.ok(new TokenResponse(
-                jwtService.generateToken(user), "Bearer", jwtService.expirationSeconds()));
+
+            var principal = (SecurityUser) authentication.getPrincipal();
+            var user = principal.toUserDetails();
+
+            eventPublisher.publishEvent(new UserAuthenticated(
+                principal.getId(),
+                request.username(),
+                Instant.now()
+            ));
+
+            return ResponseEntity.ok(new TokenResponse(
+                jwtService.generateToken(user),
+                "Bearer",
+                jwtService.expirationSeconds()
+            ));
+        } catch (AuthenticationException ex) {
+            eventPublisher.publishEvent(new UserAuthenticationFailed(
+                request.username(),
+                ex.getMessage(),
+                Instant.now()
+            ));
+            throw ex;
+        }
     }
 }
