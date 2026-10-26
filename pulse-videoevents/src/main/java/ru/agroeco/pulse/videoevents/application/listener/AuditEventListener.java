@@ -21,9 +21,10 @@ public class AuditEventListener {
         try {
             repository.save(AuditEventEntity.builder()
                 .action(event.eventType())
-                .entitySchema("incident")
-                .entityTable("incidents")
-                .entityId(event.incidentId())
+                .actorId(event.entityId())
+                .entitySchema(event.entitySchema())
+                .entityTable(event.entityTable())
+                .entityId(event.entityId())
                 .newData(mapper.writeValueAsString(event))
                 .occurredAt(event.occurredAt())
                 .build());
